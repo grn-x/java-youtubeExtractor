@@ -25,16 +25,14 @@ import java.util.concurrent.Future;
 import java.util.concurrent.Callable;
 
 import javax.script.ScriptEngine;
-import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 
-public abstract class YouTubeExtractorJava {
+public /*abstract --might introduce this later*/ class YtVideoFactory {
 
     static boolean CACHING = true;
     static boolean LOGGING = false;
 
     private final static String LOG_TAG = "YouTubeExtractor";
-    private final static String CACHE_FILE_NAME = "decipher_js_funct";
 
     //private final WeakReference<Context> refContext;
     private String videoID;
@@ -42,6 +40,8 @@ public abstract class YouTubeExtractorJava {
 
 
     private final String cacheDirPath;
+    private final static String CACHE_FILE_NAME = "decipher_js_funct";
+
     private volatile String decipheredSignature;
 
     private static String decipherJsFileName;
@@ -51,7 +51,7 @@ public abstract class YouTubeExtractorJava {
     private final Lock lock = new ReentrantLock();
     private final Condition jsExecuting = lock.newCondition();
 
-    private static final String USER_AGENT = "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.98 Safari/537.36";
+    private static final String USER_AGENT = "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.98 Safari/537.36";//TODO steal pytube user agent collection
 
     private static final Pattern patYouTubePageLink = Pattern.compile("(http|https)://(www\\.|m.|)youtube\\.com/watch\\?v=(.+?)( |\\z|&)");
     private static final Pattern patYouTubeShortLink = Pattern.compile("(http|https)://(www\\.|)youtu.be/(.+?)( |\\z|&)");
@@ -133,13 +133,17 @@ public abstract class YouTubeExtractorJava {
     private ExecutorService executorService;
     private Future<HashMap<Integer, YtFile>> future;
 
-    public YouTubeExtractorJava() {
+    public YtVideoFactory() {
         //refContext = new WeakReference<>(con); arg passed 
-        //cacheDirPath = con.getCacheDir().getAbsolutePath(); //cache already set
+        //cacheDirPath = con.getCacheDir().getAbsolutePath(); //for porting back to android later
 
         executorService = Executors.newSingleThreadExecutor();
 
-        File directory = new File("/FakeCache");
+        //new file ./ returns the working directory followed by "." directory
+        // new file / returns the root directory
+
+        File workingDirectory =new File("./").getAbsoluteFile().getParentFile(); //this clusterfuck is necessary for creating a folder in the working directory without having to make love to java awt just to maybe get the desktop path in win only
+        File directory = new File(workingDirectory.getAbsolutePath()+"\\FakeCache");
         if(!directory.exists()){
             if (directory.mkdir()) {
                 //System.out.println("Directory created");
@@ -156,7 +160,7 @@ public abstract class YouTubeExtractorJava {
     }
 
     protected void onPostExecute(HashMap<Integer, YtFile> ytFiles) {
-        onExtractionComplete(ytFiles, videoMeta);
+        //onExtractionComplete(ytFiles, videoMeta);
     }
 
     /**
@@ -183,7 +187,7 @@ public abstract class YouTubeExtractorJava {
         future = executorService.submit(callable);
     }
 
-    protected abstract void onExtractionComplete(HashMap<Integer, YtFile> ytFiles, VideoMeta videoMeta);
+    //protected abstract void onExtractionComplete(HashMap<Integer, YtFile> ytFiles, VideoMeta videoMeta); might introduce later again
 
     public HashMap<Integer, YtFile> getResult() throws Exception {
         return future.get(); // This will block until the result is available
@@ -213,6 +217,36 @@ public abstract class YouTubeExtractorJava {
         if (videoID != null) {
             try {
                 return getStreamUrls();
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "Extraction failed", e);
+                e.printStackTrace();
+            }
+        } else {
+            Log.e(LOG_TAG, "Wrong YouTube link format");
+        }
+        return null;
+    }
+
+    public YtVideo executes(String... params) {
+        videoID = null;
+        String ytUrl = params[0];
+        if (ytUrl == null) {
+            return null;
+        }
+        Matcher mat = patYouTubePageLink.matcher(ytUrl);
+        if (mat.find()) {
+            videoID = mat.group(3);
+        } else {
+            mat = patYouTubeShortLink.matcher(ytUrl);
+            if (mat.find()) {
+                videoID = mat.group(3);
+            } else if (ytUrl.matches("\\p{Graph}+?")) {
+                videoID = ytUrl;
+            }
+        }
+        if (videoID != null) {
+            try {
+                return new YtVideo(getStreamUrls(), videoMeta);
             } catch (Exception e) {
                 Log.e(LOG_TAG, "Extraction failed", e);
                 e.printStackTrace();
@@ -255,6 +289,10 @@ public abstract class YouTubeExtractorJava {
         if (mat.find()) {
             JSONObject ytPlayerResponse = new JSONObject(mat.group(1));
 
+            //System.out.println("ytPlayerResponse.toString() = " + ytPlayerResponse.toString());
+            //JSONObject videoDetails = ytPlayerResponse.getJSONObject("videoDetails");
+            //System.out.println("videoDetails.toString() = " + videoDetails.toString());
+
             JSONObject streamingData = ytPlayerResponse.getJSONObject("streamingData");
 
             JSONArray formats = streamingData.getJSONArray("formats");
@@ -275,6 +313,8 @@ public abstract class YouTubeExtractorJava {
                     if (format.has("url")) {
                         String url = format.getString("url").replace("\\u0026", "&");
                         ytFiles.put(itag, new YtFile(FORMAT_MAP.get(itag), url));
+                        //ytFiles.put(itag, new YtFile(FORMAT_MAP.get(itag), url, this.videoMeta));
+
                     } else if (format.has("signatureCipher")) {
 
                         mat = patSigEncUrl.matcher(format.getString("signatureCipher"));
@@ -604,14 +644,12 @@ public abstract class YouTubeExtractorJava {
                         append("')");
         }
         stb.append("};decipher();");
-        System.out.println("stb = " + stb);
 
         Lock lock = new ReentrantLock();
         Condition jsExecuting = lock.newCondition();
 
         jsEvaluate(stb.toString());
 
-        System.out.println("decipheredSignature = " + decipheredSignature);
     }
 
     public void jsEvaluate(String toEvaluate) {
@@ -648,7 +686,6 @@ public abstract class YouTubeExtractorJava {
         //toEvaluate = toEvaluate.replace("decipher()", "console.log(decipher());");
         var factory = new org.openjdk.nashorn.api.scripting.NashornScriptEngineFactory();
         ScriptEngine engine = factory.getScriptEngine();
-        System.out.println("toEvaluate = " + toEvaluate);
         try {
             engine.eval(toEvaluate);
         } catch (final ScriptException se) {

@@ -11,6 +11,7 @@ public class YtFile {
         this.url = url;
     }
 
+
     /**
      * The url to download the file.
      */
@@ -22,14 +23,6 @@ public class YtFile {
      * Format data for the specific file.
      */
     public Format getFormat() {
-        return format;
-    }
-
-    /**
-     * Format data for the specific file.
-     */
-    @Deprecated
-    public Format getMeta() {
         return format;
     }
 
@@ -54,8 +47,8 @@ public class YtFile {
     @Override
     public String toString() {
         return "YtFile{" +
-                "format=" + format +
-                ", url='" + url + '\'' +
+                "format=" + this.getFormat() +
+                ", url='" + this.getUrl() + '\'' +
                 '}';
     }
 }
