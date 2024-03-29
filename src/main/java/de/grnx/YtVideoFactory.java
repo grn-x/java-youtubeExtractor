@@ -289,7 +289,7 @@ public /*abstract --might introduce this later*/ class YtVideoFactory {
         if (mat.find()) {
             JSONObject ytPlayerResponse = new JSONObject(mat.group(1));
 
-            //System.out.println("ytPlayerResponse.toString() = " + ytPlayerResponse.toString());
+            System.out.println("ytPlayerResponse.toString() = " + ytPlayerResponse.toString());
             //JSONObject videoDetails = ytPlayerResponse.getJSONObject("videoDetails");
             //System.out.println("videoDetails.toString() = " + videoDetails.toString());
 
