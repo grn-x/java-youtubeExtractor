@@ -1,2 +1,4 @@
-ill add a complete description later
-this uses the java nashorn script interpreting engine instead of the native android webview like in the forked repo to evaluate and decipher the youtube encryption
+The goal of this repository was to modify and adjust the [Android YouTube Extractor Library by Haariger Harald](https://github.com/HaarigerHarald/android-youtubeExtractor) to my needs and convert it to pure Java.
+This goal was mostly achieved, though the general approach for retrieving YouTube metadata is not the best one, and YouTube limits the download speed drastically.
+This doesn't fit my needs, and to overcome this, I'd also need to decode the n-parameter to fully emulate normal behavior and reach normal speeds.
+While researching though, I found [this fantastic project](https://github.com/sealedtx/java-youtube-downloader). It fixes all the current problems and utilizes the InnerAPI, which is a much more elegant and feature-rich approach. Given this, I've decided to no longer actively use this repository.
