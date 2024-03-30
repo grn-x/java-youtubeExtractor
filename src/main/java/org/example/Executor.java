@@ -6,7 +6,7 @@ import de.grnx.YtVideoFactory;
 public class Executor {
     public static void main(String[] args) {
 
-        String youtubeLink = "https://www.youtube.com/watch?v=lf2WpjGdEME";
+        String youtubeLink = "https://www.youtube.com/watch?v=Mfs4lAtiqvI";
 
         final VideoMeta[] meta = new VideoMeta[1];
         var yt = new YtVideoFactory();
